@@ -1,4 +1,5 @@
 import re
+from datetime import datetime as dt
 from time import sleep
 
 from .settings import settings
@@ -30,7 +31,12 @@ def fetch_hashtags(raw_test, dict_obj):
 
     hashtags = get_parsed_hashtags(raw_test)
     if hashtags:
-        dict_obj["hashtags"] = hashtags
+        dict_obj["hashtags"] = dict_obj.get("hashtags", "") + hashtags
+
+def fetch_hashtags2(raw_test, dict_obj):
+    hashtags = get_parsed_hashtags(raw_test)
+    if hashtags:
+        dict_obj["hashtags"] = dict_obj.get("hashtags", "") + hashtags
 
 
 def fetch_datetime(browser, dict_post):
@@ -175,22 +181,68 @@ def fetch_initial_comment(browser, dict_post):
 
     if caption:
         dict_post["description"] = caption.text
+        dict_post["first_comment"] = caption.text
 
 
-def fetch_details(browser, dict_post):
+def fetch_details(self, browser, dict_post):
     if not settings.fetch_details:
         return
 
     browser.open_new_tab(dict_post["key"])
 
+#inside url - first tab
     username = browser.find_one("a.FPmhX")
     location = browser.find_one("a.O4GlU")
 
     if username:
         dict_post["username"] = username.text
     if location:
-        dict_post["location"] = location.text
+        location_name = location.text
+        self.log(location.get_attribute("href"))
 
+        #inside map url - second tab
+        browser.open_new_tab2(location.get_attribute("href"))
+        lat_attr = ""
+        long_attr = ""
+        try:
+            browser.implicitly_wait(2)
+            lat = browser.driver.find_element_by_xpath("//meta[@property='place:location:latitude']")
+            long = browser.driver.find_element_by_xpath("//meta[@property='place:location:longitude']")
+
+            if lat:
+                lat_attr = lat.get_attribute("content")
+            if long:
+                long_attr = long.get_attribute("content")
+        except:
+            pass
+
+        location_obj = {"name": location_name, "latitude": lat_attr, "longitude": long_attr}
+        dict_post["location"] = location_obj
+
+        browser.close_current_tab2()
+
+#first comment hashtag
     fetch_initial_comment(browser, dict_post)
+    body_hashtags = get_parsed_hashtags(dict_post.get("first_comment",""))
+    if body_hashtags:
+        dict_post["body_hashtags"] = body_hashtags
+
+#comment
+    comments_elem = browser.find_one("ul.XQXOT")
+    ele_comments = browser.find(".Mr508", comments_elem)
+    if len(ele_comments) > 0:
+        self.log(str(len(ele_comments)))
+        for c in ele_comments:
+            temp_element = browser.find("span",c)
+            for element in temp_element:
+                self.log(element.text)
+                if element.text not in ['Verified',''] and 'caption' not in dict_post:
+                    fetch_hashtags2(element.text, dict_post)
+
+
+#datetime
+    ele_datetime = browser.find_one(".eo2As .c-Yi7 ._1o9PC")
+    datetime = ele_datetime.get_attribute("datetime")
+    dict_post["datetime"] = datetime
 
     browser.close_current_tab()

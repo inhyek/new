@@ -269,12 +269,13 @@ class InsCrawler(Logging):
             for ele in ele_posts:
                 key = ele.get_attribute("href")
                 if key not in key_set:
+                    self.log("key: " + str(key)) ## url
                     dict_post = { "key": key }
                     ele_img = browser.find_one(".KL4Bh img", ele)
                     dict_post["caption"] = ele_img.get_attribute("alt")
                     dict_post["img_url"] = ele_img.get_attribute("src")
 
-                    fetch_details(browser, dict_post)
+                    fetch_details(self, browser, dict_post)
 
                     key_set.add(key)
                     posts.append(dict_post)

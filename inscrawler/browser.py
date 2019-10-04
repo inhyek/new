@@ -55,6 +55,26 @@ class Browser:
         except NoSuchElementException:
             return None
 
+    def find_by_tag(self, tag, elem=None, waittime=0):
+        obj = elem or self.driver
+        try:
+            return obj.find_elements_by_tag_name(tag)
+        except NoSuchElementException:
+            return None
+
+    def find_by_xpath(self, xpath, elem=None, waittime=0):
+        obj = elem or self.driver
+
+        if waittime:
+            WebDriverWait(obj, waittime).until(
+                EC.presence_of_element_located((By.XPATH, xpath))
+            )
+
+        try:
+            return obj.find_elements_by_xpath(xpath)
+        except NoSuchElementException:
+            return None
+
     def find(self, css_selector, elem=None, waittime=0):
         obj = elem or self.driver
 
@@ -89,10 +109,17 @@ class Browser:
         self.driver.execute_script("window.open('%s');" %url)
         self.driver.switch_to.window(self.driver.window_handles[1])
 
+    def open_new_tab2(self, url):
+        self.driver.execute_script("window.open('%s');" %url)
+        self.driver.switch_to.window(self.driver.window_handles[2])
+
     def close_current_tab(self):
         self.driver.close()
-
         self.driver.switch_to.window(self.driver.window_handles[0])
+
+    def close_current_tab2(self):
+        self.driver.close()
+        self.driver.switch_to.window(self.driver.window_handles[1])
 
     def __del__(self):
         try:
