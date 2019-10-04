@@ -42,6 +42,10 @@ def get_posts_by_hashtag(tag, number, debug):
     ins_crawler = InsCrawler(has_screen=debug)
     return ins_crawler.get_latest_posts_by_tag(tag, number)
 
+def get_urls_by_hashtag(tag, number, debug, filepath):
+    ins_crawler = InsCrawler(has_screen=debug)
+    return ins_crawler.get_urls_posts_by_tag(tag, number, filepath)
+
 
 def arg_required(args, fields=[]):
     for field in fields:
@@ -95,5 +99,9 @@ if __name__ == "__main__":
         output(
             get_posts_by_hashtag(args.tag, args.number or 100, args.debug), args.output
         )
+    elif args.mode == "url":
+        arg_required("tag")
+        get_urls_by_hashtag(args.tag, args.number or 100, args.debug, args.output)
+
     else:
         usage()

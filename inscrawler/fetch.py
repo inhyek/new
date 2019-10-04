@@ -1,5 +1,4 @@
 import re
-from datetime import datetime as dt
 from time import sleep
 
 from .settings import settings
@@ -36,7 +35,7 @@ def fetch_hashtags(raw_test, dict_obj):
 def fetch_hashtags2(raw_test, dict_obj):
     hashtags = get_parsed_hashtags(raw_test)
     if hashtags:
-        dict_obj["hashtags"] = dict_obj.get("hashtags", "") + hashtags
+        dict_obj["hashtags"] = dict_obj.get("hashtags", []) + hashtags
 
 
 def fetch_datetime(browser, dict_post):
@@ -188,7 +187,9 @@ def fetch_details(self, browser, dict_post):
     if not settings.fetch_details:
         return
 
+# dict_post["key"] == url
     browser.open_new_tab(dict_post["key"])
+    # browser.open_new_tab("https://www.instagram.com/p/B3MRGX9lIa_/")
 
 #inside url - first tab
     username = browser.find_one("a.FPmhX")
@@ -198,21 +199,19 @@ def fetch_details(self, browser, dict_post):
         dict_post["username"] = username.text
     if location:
         location_name = location.text
-        self.log(location.get_attribute("href"))
 
         #inside map url - second tab
         browser.open_new_tab2(location.get_attribute("href"))
         lat_attr = ""
         long_attr = ""
         try:
-            browser.implicitly_wait(2)
-            lat = browser.driver.find_element_by_xpath("//meta[@property='place:location:latitude']")
-            long = browser.driver.find_element_by_xpath("//meta[@property='place:location:longitude']")
-
-            if lat:
-                lat_attr = lat.get_attribute("content")
-            if long:
-                long_attr = long.get_attribute("content")
+            headtag = browser.find_one("head")
+            metas = browser.find("meta", headtag)
+            for m in metas:
+                if str(m.get_attribute('property')) == "place:location:latitude":
+                    lat_attr = str(m.get_attribute('content'))
+                if str(m.get_attribute('property')) == "place:location:longitude":
+                    long_attr = str(m.get_attribute('content'))
         except:
             pass
 
@@ -231,13 +230,13 @@ def fetch_details(self, browser, dict_post):
     comments_elem = browser.find_one("ul.XQXOT")
     ele_comments = browser.find(".Mr508", comments_elem)
     if len(ele_comments) > 0:
-        self.log(str(len(ele_comments)))
         for c in ele_comments:
             temp_element = browser.find("span",c)
             for element in temp_element:
-                self.log(element.text)
-                if element.text not in ['Verified',''] and 'caption' not in dict_post:
-                    fetch_hashtags2(element.text, dict_post)
+                if element.text not in ['Verified','']:
+                    hashtags = get_parsed_hashtags(element.text)
+                    if hashtags:
+                        dict_post["hashtags"] = dict_post.get("hashtags", []) + hashtags
 
 
 #datetime

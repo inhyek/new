@@ -21,6 +21,8 @@ class Browser:
             chrome_options.add_argument("--headless")
         chrome_options.add_argument("--start-maximized")
         chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+        chrome_options.add_argument("lang=ko_KR") # 한국어!
         self.driver = webdriver.Chrome(
             executable_path="%s/bin/chromedriver" % dir_path,
             service_args=service_args,
@@ -64,11 +66,13 @@ class Browser:
 
     def find_by_xpath(self, xpath, elem=None, waittime=0):
         obj = elem or self.driver
-
-        if waittime:
-            WebDriverWait(obj, waittime).until(
-                EC.presence_of_element_located((By.XPATH, xpath))
-            )
+        try:
+            if waittime:
+                WebDriverWait(obj, waittime).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
+        except TimeoutException:
+            return None
 
         try:
             return obj.find_elements_by_xpath(xpath)
@@ -112,6 +116,9 @@ class Browser:
     def open_new_tab2(self, url):
         self.driver.execute_script("window.open('%s');" %url)
         self.driver.switch_to.window(self.driver.window_handles[2])
+
+    def source(self):
+        return self.driver.page_source
 
     def close_current_tab(self):
         self.driver.close()

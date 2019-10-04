@@ -144,9 +144,15 @@ class InsCrawler(Logging):
             return self._get_posts(number)
 
     def get_latest_posts_by_tag(self, tag, num):
+        self.login()
         url = "%s/explore/tags/%s/" % (InsCrawler.URL, tag)
         self.browser.get(url)
         return self._get_posts(num)
+
+    def get_urls_posts_by_tag(self, tag, num, filepath):
+        url = "%s/explore/tags/%s/" % (InsCrawler.URL, tag)
+        self.browser.get(url)
+        return self._get_urls(num, filepath)
 
     def auto_like(self, tag="", maximum=1000):
         self.login()
@@ -279,6 +285,64 @@ class InsCrawler(Logging):
 
                     key_set.add(key)
                     posts.append(dict_post)
+
+                    if len(posts) == num:
+                        break
+
+            if pre_post_num == len(posts):
+                pbar.set_description("Wait for %s sec" % (wait_time))
+                sleep(wait_time)
+                pbar.set_description("fetching")
+
+                wait_time *= 2
+                browser.scroll_up(300)
+            else:
+                wait_time = 1
+
+            pre_post_num = len(posts)
+            browser.scroll_down()
+
+            return pre_post_num, wait_time
+
+        pbar.set_description("fetching")
+        while len(posts) < num and wait_time < TIMEOUT:
+            post_num, wait_time = start_fetching(pre_post_num, wait_time)
+            pbar.update(post_num - pre_post_num)
+            pre_post_num = post_num
+
+            loading = browser.find_one(".W1Bne")
+            if not loading and wait_time > TIMEOUT / 2:
+                break
+
+        pbar.close()
+        print("Done. Fetched %s posts." % (min(len(posts), num)))
+        return posts[:num]
+
+    def _get_urls(self, num, filepath):
+        """
+            To get posts, we have to click on the load more
+            button and make the browser call post api.
+        """
+        TIMEOUT = 600
+        browser = self.browser
+        key_set = set()
+        posts = []
+        pre_post_num = 0
+        wait_time = 1
+
+        pbar = tqdm(total=num)
+
+        def start_fetching(pre_post_num, wait_time):
+            ele_posts = browser.find(".v1Nh3 a")
+            for ele in ele_posts:
+                key = ele.get_attribute("href")
+                if key not in key_set:
+                    self.log("key: " + str(key)) ## url
+                    dict_post = { "key": key }
+                    key_set.add(key)
+                    posts.append(dict_post)
+                    with open(filepath + "urls.txt", "a", encoding="utf8") as f:
+                        f.write(key+"\n")
 
                     if len(posts) == num:
                         break
