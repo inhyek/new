@@ -100,7 +100,6 @@ if __name__ == "__main__":
             get_posts_by_hashtag(args.tag, args.number or 100, args.debug), args.output
         )
     elif args.mode == "url":
-        arg_required("tag")
         get_urls_by_hashtag(args.tag, args.number or 100, args.debug, args.output)
 
     else:

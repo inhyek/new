@@ -187,11 +187,71 @@ def fetch_details(self, browser, dict_post):
     if not settings.fetch_details:
         return
 
-# dict_post["key"] == url
+    # dict_post["key"] == url
     browser.open_new_tab(dict_post["key"])
     # browser.open_new_tab("https://www.instagram.com/p/B3MRGX9lIa_/")
 
-#inside url - first tab
+    #inside url - first tab
+    username = browser.find_one("a.FPmhX")
+    location = browser.find_one("a.O4GlU")
+
+    if username:
+        dict_post["username"] = username.text
+    if location:
+        location_name = location.text
+
+        #inside map url - second tab
+        browser.open_new_tab2(location.get_attribute("href"))
+        lat_attr = ""
+        long_attr = ""
+        try:
+            headtag = browser.find_one("head")
+            metas = browser.find("meta", headtag)
+            for m in metas:
+                if str(m.get_attribute('property')) == "place:location:latitude":
+                    lat_attr = str(m.get_attribute('content'))
+                if str(m.get_attribute('property')) == "place:location:longitude":
+                    long_attr = str(m.get_attribute('content'))
+        except:
+            print("url: %s fetch location failed\n" % dict_post["key"])
+            pass
+
+        location_obj = {"name": location_name, "latitude": lat_attr, "longitude": long_attr}
+        dict_post["location"] = location_obj
+
+        browser.close_current_tab2()
+
+    #first comment hashtag
+    fetch_initial_comment(browser, dict_post)
+    body_hashtags = get_parsed_hashtags(dict_post.get("first_comment",""))
+    if body_hashtags:
+        dict_post["body_hashtags"] = body_hashtags
+
+    #comment
+    comments_elem = browser.find_one("ul.XQXOT")
+    ele_comments = browser.find(".Mr508", comments_elem)
+    if len(ele_comments) > 0:
+        for c in ele_comments:
+            temp_element = browser.find("span",c)
+            for element in temp_element:
+                if element.text not in ['Verified','']:
+                    hashtags = get_parsed_hashtags(element.text)
+                    if hashtags:
+                        dict_post["hashtags"] = dict_post.get("hashtags", []) + hashtags
+
+
+    #datetime
+    ele_datetime = browser.find_one(".eo2As .c-Yi7 ._1o9PC")
+    datetime = ele_datetime.get_attribute("datetime")
+    dict_post["datetime"] = datetime
+
+    browser.close_current_tab()
+
+def fetch_details_url(self, browser, url):
+    dict_post = {}
+    browser.open_new_tab(url)
+
+    #inside url - first tab
     username = browser.find_one("a.FPmhX")
     location = browser.find_one("a.O4GlU")
 
@@ -220,13 +280,13 @@ def fetch_details(self, browser, dict_post):
 
         browser.close_current_tab2()
 
-#first comment hashtag
+    #first comment hashtag
     fetch_initial_comment(browser, dict_post)
     body_hashtags = get_parsed_hashtags(dict_post.get("first_comment",""))
     if body_hashtags:
         dict_post["body_hashtags"] = body_hashtags
 
-#comment
+    #comment
     comments_elem = browser.find_one("ul.XQXOT")
     ele_comments = browser.find(".Mr508", comments_elem)
     if len(ele_comments) > 0:
@@ -239,9 +299,11 @@ def fetch_details(self, browser, dict_post):
                         dict_post["hashtags"] = dict_post.get("hashtags", []) + hashtags
 
 
-#datetime
+    #datetime
     ele_datetime = browser.find_one(".eo2As .c-Yi7 ._1o9PC")
     datetime = ele_datetime.get_attribute("datetime")
     dict_post["datetime"] = datetime
 
     browser.close_current_tab()
+
+    return dict_post

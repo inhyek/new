@@ -22,6 +22,7 @@ from .fetch import fetch_imgs
 from .fetch import fetch_likers
 from .fetch import fetch_likes_plays
 from .fetch import fetch_details
+from .fetch import fetch_details_url
 from .utils import instagram_int
 from .utils import randmized_sleep
 from .utils import retry
@@ -150,6 +151,7 @@ class InsCrawler(Logging):
         return self._get_posts(num)
 
     def get_urls_posts_by_tag(self, tag, num, filepath):
+        self.login()
         url = "%s/explore/tags/%s/" % (InsCrawler.URL, tag)
         self.browser.get(url)
         return self._get_urls(num, filepath)
@@ -330,48 +332,28 @@ class InsCrawler(Logging):
         pre_post_num = 0
         wait_time = 1
 
-        pbar = tqdm(total=num)
-
-        def start_fetching(pre_post_num, wait_time):
-            ele_posts = browser.find(".v1Nh3 a")
-            for ele in ele_posts:
-                key = ele.get_attribute("href")
-                if key not in key_set:
-                    self.log("key: " + str(key)) ## url
-                    dict_post = { "key": key }
-                    key_set.add(key)
-                    posts.append(dict_post)
-                    with open(filepath + "urls.txt", "a", encoding="utf8") as f:
-                        f.write(key+"\n")
-
-                    if len(posts) == num:
-                        break
-
-            if pre_post_num == len(posts):
-                pbar.set_description("Wait for %s sec" % (wait_time))
-                sleep(wait_time)
-                pbar.set_description("fetching")
-
-                wait_time *= 2
-                browser.scroll_up(300)
+        def output(data):
+            out = json.dumps(data, ensure_ascii=False)
+            if filepath:
+                with open(filepath + "_out", "w", encoding="utf8") as o:
+                    o.write(out)
+                    o.close()
             else:
-                wait_time = 1
+                print(out)
 
-            pre_post_num = len(posts)
-            browser.scroll_down()
+        f = open(filepath)
+        num_lines = sum(1 for line in f)
+        f.close()
 
-            return pre_post_num, wait_time
-
+        pbar = tqdm(total=num_lines)
         pbar.set_description("fetching")
-        while len(posts) < num and wait_time < TIMEOUT:
-            post_num, wait_time = start_fetching(pre_post_num, wait_time)
-            pbar.update(post_num - pre_post_num)
-            pre_post_num = post_num
 
-            loading = browser.find_one(".W1Bne")
-            if not loading and wait_time > TIMEOUT / 2:
-                break
+        with open(filepath) as f:
+            for i, l in enumerate(f):
+                j = fetch_details_url(self, browser, l)
+                output(j)
+                pbar.update(i)
 
         pbar.close()
-        print("Done. Fetched %s posts." % (min(len(posts), num)))
+        print("Done. Fetched %s posts." % num_lines)
         return posts[:num]
