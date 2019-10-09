@@ -335,8 +335,9 @@ class InsCrawler(Logging):
         def output(data):
             out = json.dumps(data, ensure_ascii=False)
             if filepath:
-                with open(filepath + "_out", "w", encoding="utf8") as o:
+                with open(filepath + "_out", "a", encoding="utf8") as o:
                     o.write(out)
+                    o.write("\n")
                     o.close()
             else:
                 print(out)
@@ -348,11 +349,12 @@ class InsCrawler(Logging):
         pbar = tqdm(total=num_lines)
         pbar.set_description("fetching")
 
+        open(filepath + "_out", "w", encoding="utf8").close()
         with open(filepath) as f:
             for i, l in enumerate(f):
-                j = fetch_details_url(self, browser, l)
+                j = fetch_details_url(self, browser, l.strip())
                 output(j)
-                pbar.update(i)
+                pbar.update(1+i)
 
         pbar.close()
         print("Done. Fetched %s posts." % num_lines)
