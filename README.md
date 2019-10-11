@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Instagram Crawler [![Build Status](https://travis-ci.org/huaying/instagram-crawler.svg?branch=master)](https://travis-ci.org/huaying/instagram-crawler)
 
 Below is what you can do with this program:
@@ -90,3 +91,7 @@ optional arguments:
 ```
 python liker.py foodie
 ```
+=======
+# new
+new
+>>>>>>> 2da90c8406c6890569610cb28c84effee2c49e5c
